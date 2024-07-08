@@ -46,16 +46,13 @@ function playChord(notes, duration = 1) {
   }
 }
 
-function playProgression(chords, duration = 0.95, interval = 0.05) {
+function playProgression(chords, durations) {
   if (sampler) {
     const now = Tone.now();
-    chords.forEach((chord, index) => {
-      sampler.triggerAttackRelease(
-        chord,
-        duration,
-        now + index * (duration + interval)
-      );
-    });
+    chords.reduce((acc, chord, index) => {
+      sampler.triggerAttackRelease(chord, durations[index], acc);
+      return acc + durations[index];
+    }, now);
   } else {
     console.warn("Sampler not initialized. Current state:", {
       sampler: !!sampler,

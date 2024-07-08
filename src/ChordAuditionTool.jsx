@@ -94,12 +94,27 @@ const ChordSlot = ({ rowIndex, colIndex, children, moveChord }) => {
 const ChordRow = ({
   rowIndex,
   chords,
+  beats,
   moveChord,
   onChordSelect,
   selectedChord,
   onRemoveNote,
   onClearChord,
+  onBeatsChange,
+  bpm,
 }) => {
+  const handlePlayRowProgression = () => {
+    const rowChords = chords.filter((chord) => chord.length > 0); // Remove empty chords
+    const chordBeats = beats.filter((_, index) => chords[index].length > 0);
+
+    if (rowChords.length === 0) return; // Don't play if there are no chords
+
+    const beatDuration = 60 / bpm; // Duration of one beat in seconds
+    const chordDurations = chordBeats.map((beat) => beat * beatDuration);
+
+    playProgression(rowChords, chordDurations);
+  };
+
   return (
     <div className="flex items-center">
       {chords.map((chord, colIndex) => (
@@ -108,6 +123,8 @@ const ChordRow = ({
           rowIndex={rowIndex}
           colIndex={colIndex}
           moveChord={moveChord}
+          beats={beats[colIndex]}
+          onBeatsChange={onBeatsChange}
         >
           <ChordBox
             id={`${rowIndex}-${colIndex}`}
@@ -123,16 +140,44 @@ const ChordRow = ({
       <div className="ml-4">
         <Play
           className="w-6 h-6 cursor-pointer"
-          onClick={() =>
-            playProgression(chords.filter((chord) => chord.length > 0))
-          }
+          onClick={handlePlayRowProgression}
         />
       </div>
     </div>
   );
 };
 
-const ChordGrid = ({ grid, setGrid, selectedChord, setSelectedChord }) => {
+const BeatSelector = ({ beats, onBeatsChange }) => {
+  return (
+    <div className="flex mb-2">
+      {beats.map((beat, index) => (
+        <div key={index} className="flex-1 px-1">
+          <input
+            type="number"
+            min="1"
+            max="8"
+            value={beat}
+            onChange={(e) => onBeatsChange(index, parseInt(e.target.value))}
+            className="w-full text-center border rounded"
+          />
+        </div>
+      ))}
+      <div className="ml-4 invisible">
+        <Play className="w-6 h-6 cursor-pointer" onClick={() => {}} />
+      </div>
+    </div>
+  );
+};
+
+const ChordGrid = ({
+  grid,
+  setGrid,
+  beats,
+  setBeats,
+  selectedChord,
+  setSelectedChord,
+  bpm,
+}) => {
   const moveChord = useCallback(
     (fromId, toId) => {
       const [fromRow, fromCol] = fromId.split("-").map(Number);
@@ -176,19 +221,34 @@ const ChordGrid = ({ grid, setGrid, selectedChord, setSelectedChord }) => {
     [setGrid]
   );
 
+  const handleBeatsChange = useCallback(
+    (colIndex, newBeats) => {
+      setBeats((prevBeats) => {
+        const newBeatsArray = [...prevBeats];
+        newBeatsArray[colIndex] = newBeats;
+        return newBeatsArray;
+      });
+    },
+    [setBeats]
+  );
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="p-4">
+        <BeatSelector beats={beats} onBeatsChange={handleBeatsChange} />
         {grid.map((row, rowIndex) => (
           <ChordRow
             key={rowIndex}
             rowIndex={rowIndex}
             chords={row}
+            beats={beats}
             moveChord={moveChord}
             onChordSelect={setSelectedChord}
             selectedChord={selectedChord}
             onRemoveNote={handleRemoveNote}
             onClearChord={handleClearChord}
+            onBeatsChange={handleBeatsChange}
+            bpm={bpm}
           />
         ))}
       </div>
@@ -198,11 +258,13 @@ const ChordGrid = ({ grid, setGrid, selectedChord, setSelectedChord }) => {
 
 const ChordAuditionTool = () => {
   const [grid, setGrid] = useState(
-    Array(6)
+    Array(5)
       .fill()
       .map(() => Array(12).fill([]))
   );
+  const [beats, setBeats] = useState(Array(12).fill(4));
   const [selectedChord, setSelectedChord] = useState(null);
+  const [bpm, setBpm] = useState(120);
 
   useEffect(() => {
     const initializeAudio = async () => {
@@ -268,12 +330,29 @@ const ChordAuditionTool = () => {
       <h1 className="text-2xl font-bold mb-4">Chord Audition Tool</h1>
 
       <div className="flex flex-col items-center">
+        <div className="mb-4">
+          <label htmlFor="bpm" className="mr-2">
+            BPM:
+          </label>
+          <input
+            id="bpm"
+            type="number"
+            min="40"
+            max="240"
+            value={bpm}
+            onChange={(e) => setBpm(parseInt(e.target.value))}
+            className="w-16 text-center border rounded"
+          />
+        </div>
         <Piano onKeyPress={handleKeyPress} activeNotes={getActiveNotes()} />
         <ChordGrid
           grid={grid}
           setGrid={setGrid}
+          beats={beats}
+          setBeats={setBeats}
           selectedChord={selectedChord}
           setSelectedChord={setSelectedChord}
+          bpm={bpm}
         />
       </div>
     </div>
