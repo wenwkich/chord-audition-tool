@@ -2,8 +2,8 @@ import React from "react";
 
 const PianoKey = ({ note, isSharp, onKeyPress, isActive }) => {
   const keyClass = isSharp
-    ? `bg-black text-white w-6 h-24 -mx-3 z-10 ${isActive ? "bg-blue-500" : ""}`
-    : `bg-white border border-black w-10 h-36 ${isActive ? "bg-blue-300" : ""}`;
+    ? `text-white w-6 h-24 -mx-3 z-10 ${isActive ? "bg-blue-500" : "bg-black"}`
+    : ` border border-black w-10 h-36 ${isActive ? "bg-blue-200" : "bg-white"}`;
 
   return (
     <button className={`${keyClass} relative`} onClick={() => onKeyPress(note)}>
